@@ -1,6 +1,6 @@
-# mdm - Minimal Desktop Manager
+# mdm - Minimal Display Manager
 
-A properly minimal desktop manager might look like this:
+A properly minimal display manager might look like this:
 
 ```
 #!/bin/sh
