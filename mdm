@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+
+from pathlib import Path
+from locale import getlocale
+from typing import TextIO, Optional
+from configparser import ConfigParser
+from subprocess import run, PIPE
+from sys import exit
+from os import execvpe, environb
+from shlex import split
+
+try:
+    import natsort as ns
+except ImportError:
+    def hsorted(seq):
+        return sorted(seq, key=str.lower)
+else:
+    def hsorted(seq):
+        return ns.natsorted(seq, alg=ns.IGNORECASE)
+
+lang, _encoding = getlocale()
+
+options = {}
+
+for path in Path('/usr/share/xsessions').glob('*.desktop'):
+    parser = ConfigParser()
+    parser.read(path)
+    entry = parser['Desktop Entry']
+    cmdline = entry.get(f'Exec', None)
+    name = entry.get(f'Name[{lang}]', entry.get('Name', cmdline))
+    if cmdline is not None and cmdline.strip():
+        options[name] = cmdline
+
+rv = run(
+    ['fzf', '--reverse', '--header', 'Desktop Manager:', '--info=hidden'],
+    input='\n'.join(hsorted(options)).encode(),
+    stdout=PIPE,
+)
+if rv.returncode:
+    exit(rv.returncode)
+
+selection = rv.stdout.decode().removesuffix('\n')
+prog, *args = split(options[selection])
+rv = run([ 'which', prog ], stdout=PIPE)
+if rv.returncode:
+    exit(rv.returncode)
+prog = rv.stdout.decode().removesuffix('\n')
+
+execvpe('startx', [ 'startx', prog ] + args, environb)
