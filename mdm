@@ -2,11 +2,10 @@
 
 from pathlib import Path
 from locale import getlocale
-from typing import TextIO, Optional
 from configparser import ConfigParser
 from subprocess import run, PIPE
-from sys import exit
-from os import execvpe, environb
+from sys import stdout, stderr, exit
+from os import environb
 from shlex import split
 
 try:
@@ -46,4 +45,7 @@ if rv.returncode:
     exit(rv.returncode)
 prog = rv.stdout.decode().removesuffix('\n')
 
-execvpe('startx', [ 'startx', prog ] + args, environb)
+stdout.close()
+stderr.close()
+
+run([ 'startx', prog ] + args, stdout=PIPE, env=environb)
