@@ -7,6 +7,20 @@ from subprocess import run, PIPE
 from sys import stdout, stderr, exit
 from os import environb
 from shlex import split
+from argparse import ArgumentParser
+
+parser = ArgumentParser()
+parser.add_argument('--dbus', '-d', action='store_true', help='prepend "dbus-launch --exit-with-session" to the command')
+args = parser.parse_args()
+
+if args.dbus:
+    rv = run([ 'which', 'dbus-launch' ], stdout=PIPE)
+    if rv.returncode:
+        exit(rv.returncode)
+    prog = rv.stdout.decode().removesuffix('\n')
+    dbus = [ prog, '--exit-with-session' ]
+else:
+    dbus = []
 
 try:
     import natsort as ns
@@ -45,7 +59,9 @@ if rv.returncode:
     exit(rv.returncode)
 prog = rv.stdout.decode().removesuffix('\n')
 
-stdout.close()
-stderr.close()
-
-run([ 'startx', prog ] + args, stdout=PIPE, env=environb)
+cmdline = ['startx'] + dbus + [prog] + args
+print('>>>', *cmdline, file=stderr)
+try:
+    run(cmdline, stdout=PIPE, env=environb)
+except KeyboardInterrupt:
+    pass
